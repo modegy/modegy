@@ -13,6 +13,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
         .login-box {
             background: rgba(26, 35, 47, 0.95);
@@ -21,7 +22,7 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             border: 2px solid rgba(79, 195, 247, 0.3);
             width: 450px;
-            max-width: 90%;
+            max-width: 100%;
         }
         h1 {
             color: #4fc3f7;
@@ -35,6 +36,7 @@
             color: #bbdefb;
             margin-bottom: 10px;
             font-weight: 600;
+            font-size: 14px;
         }
         input {
             width: 100%;
@@ -44,11 +46,15 @@
             border-radius: 12px;
             color: white;
             font-size: 15px;
+            transition: all 0.3s;
         }
         input:focus {
             outline: none;
             border-color: #4fc3f7;
             background: rgba(255,255,255,0.12);
+        }
+        input::placeholder {
+            color: rgba(255,255,255,0.4);
         }
         button {
             width: 100%;
@@ -66,6 +72,14 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4);
         }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
         .error {
             background: rgba(244, 67, 54, 0.2);
             color: #f44336;
@@ -75,6 +89,18 @@
             text-align: center;
             border-left: 4px solid #f44336;
             display: none;
+            font-size: 14px;
+        }
+        .success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 4px solid #4caf50;
+            display: none;
+            font-size: 14px;
         }
         .loading {
             display: none;
@@ -104,15 +130,27 @@
         <form id="loginForm">
             <div class="input-group">
                 <label>📧 البريد الإلكتروني</label>
-                <input type="email" id="email" placeholder="admin@example.com" required>
+                <input 
+                    type="email" 
+                    id="email" 
+                    placeholder="admin@example.com" 
+                    required 
+                    autocomplete="email"
+                >
             </div>
             
             <div class="input-group">
                 <label>🔑 كلمة المرور</label>
-                <input type="password" id="password" placeholder="••••••••" required>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="••••••••" 
+                    required
+                    autocomplete="current-password"
+                >
             </div>
             
-            <button type="submit">دخول 🚀</button>
+            <button type="submit" id="loginBtn">دخول 🚀</button>
         </form>
         
         <div class="loading" id="loading">
@@ -120,16 +158,15 @@
             <p>جاري التحقق...</p>
         </div>
         
+        <div class="success" id="success"></div>
         <div class="error" id="error"></div>
     </div>
 
     <script type="module">
-        // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
         import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
-        // Firebase configuration (الكود الذي نسخته)
         const firebaseConfig = {
             apiKey: "AIzaSyCbMdjj7escUMDKvRlD7iaNBTW6ZjhnTDs",
             authDomain: "loginapp-8a0ad.firebaseapp.com",
@@ -141,45 +178,57 @@
             measurementId: "G-RQCHC0E4KH"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const database = getDatabase(app);
 
-        // Login form handler
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
             const loadingDiv = document.getElementById('loading');
+            const loginBtn = document.getElementById('loginBtn');
             
-            // Hide previous errors
+            // Hide previous messages
             errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
             loadingDiv.style.display = 'block';
+            loginBtn.disabled = true;
             
             try {
-                // Sign in
+                // Sign in with Firebase
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const uid = userCredential.user.uid;
                 
-                // Check if admin
+                console.log('User signed in:', uid);
+                
+                // Check if user is admin
                 const adminRef = ref(database, `admins/${uid}`);
                 const snapshot = await get(adminRef);
                 
                 if (snapshot.exists()) {
-                    // Success - redirect to admin panel
-                    alert('✅ تم تسجيل الدخول بنجاح!');
-                    window.location.href = 'admin-panel.html';
+                    // Success - User is admin
+                    successDiv.textContent = '✅ تم تسجيل الدخول بنجاح! جاري التحويل...';
+                    successDiv.style.display = 'block';
+                    
+                    // Redirect to admin panel after 1 second
+                    setTimeout(() => {
+                        window.location.href = 'admin-panel.html';
+                    }, 1000);
                 } else {
-                    // Not an admin
+                    // User exists but not an admin
                     errorDiv.textContent = '⛔ عذراً، أنت لست مسؤولاً!';
                     errorDiv.style.display = 'block';
                     await signOut(auth);
+                    loginBtn.disabled = false;
                 }
             } catch (error) {
-                // Handle errors
+                console.error('Login error:', error);
+                
+                // Handle different error codes
                 let errorMessage = 'حدث خطأ غير متوقع';
                 
                 switch(error.code) {
@@ -193,19 +242,37 @@
                         errorMessage = '❌ البريد الإلكتروني غير صحيح';
                         break;
                     case 'auth/too-many-requests':
-                        errorMessage = '⚠️ محاولات كثيرة، حاول لاحقاً';
+                        errorMessage = '⚠️ محاولات كثيرة جداً، حاول لاحقاً';
                         break;
                     case 'auth/invalid-credential':
                         errorMessage = '❌ البريد أو كلمة المرور خاطئة';
                         break;
+                    case 'auth/network-request-failed':
+                        errorMessage = '🌐 خطأ في الاتصال، تحقق من الإنترنت';
+                        break;
                     default:
-                        errorMessage = '❌ خطأ: ' + error.message;
+                        errorMessage = `❌ خطأ: ${error.message}`;
                 }
                 
                 errorDiv.textContent = errorMessage;
                 errorDiv.style.display = 'block';
+                loginBtn.disabled = false;
             } finally {
                 loadingDiv.style.display = 'none';
+            }
+        });
+
+        // Check if user already logged in (optional)
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                console.log('User already logged in:', user.uid);
+                // Optionally check if admin and redirect
+                const adminRef = ref(database, `admins/${user.uid}`);
+                const snapshot = await get(adminRef);
+                if (snapshot.exists()) {
+                    // User is already logged in as admin, could redirect
+                    // window.location.href = 'admin-panel.html';
+                }
             }
         });
     </script>
