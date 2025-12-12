@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -1330,80 +1331,35 @@ user_id_3"></textarea>
         let extendDuration = 0;
         let forceUserId = null;
 
-        // ========================================
-        // Authentication & Protection
-        // ========================================
-        onAuthStateChanged(auth, async (user) => {
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            const mainContent = document.getElementById('mainContent');
+ // تعطيل المصادقة مؤقتاً
+// ========================================
+const loadingOverlay = document.getElementById('loadingOverlay');
+const mainContent = document.getElementById('mainContent');
 
-            if (!user) {
-                // غير مسجل دخول
-                alert('⛔ يجب تسجيل الدخول أولاً!');
-                window.location.href = 'index.html';
-                return;
-            }
+// عرض البريد الإلكتروني
+document.getElementById('adminEmail').textContent = '👤 modynew55@gmail.com';
 
-            try {
-                // التحقق من أنه مسؤول
-                const adminRef = ref(database, `admins/${user.uid}`);
-                const snapshot = await get(adminRef);
-                
-                if (!snapshot.exists()) {
-                    alert('⛔ أنت لست مسؤولاً!');
-                    await signOut(auth);
-                    window.location.href = 'index.html';
-                    return;
-                }
+// إخفاء شاشة التحميل وإظهار المحتوى
+loadingOverlay.classList.add('hidden');
+mainContent.style.display = 'block';
 
-                // مسؤول مصادق عليه
-                console.log('✅ Admin authenticated:', user.email);
-                document.getElementById('adminEmail').textContent = `👤 ${user.email}`;
-                
-                // إخفاء Loading وإظهار المحتوى
-                loadingOverlay.classList.add('hidden');
-                mainContent.style.display = 'block';
-                
-                // تهيئة اللوحة
-                initializeAdminPanel();
+// تهيئة اللوحة مباشرة
+loadUsers();
+loadSettings();
+loadStats();
+setDuration(60);
 
-            } catch (error) {
-                console.error('Error checking admin:', error);
-                alert('❌ خطأ في التحقق من الصلاحيات');
-                window.location.href = 'index.html';
-            }
-        });
+console.log('✅ Admin panel loaded without authentication');
 
-        // ========================================
-        // Logout Function
-        // ========================================
-        window.logoutAdmin = async function() {
-            if (!confirm('هل تريد تسجيل الخروج؟')) return;
-            
-            try {
-                await signOut(auth);
-                window.location.href = 'index.html';
-            } catch (error) {
-                alert('❌ خطأ في تسجيل الخروج: ' + error.message);
-            }
-        }
+// زر الخروج (معطل مؤقتاً)
+window.logoutAdmin = function() {
+    if (confirm('هل تريد الخروج؟')) {
+        window.location.href = 'index.html';
+    }
+}
 
-        // ========================================
-        // Initialize Admin Panel
-        // ========================================
-        function initializeAdminPanel() {
-            loadUsers();
-            loadSettings();
-            loadStats();
-            setDuration(60);
-            
-            console.log('%c🚀 Master Admin Panel v4 - Professional Edition', 
-                'color: #4fc3f7; font-size: 16px; font-weight: bold;');
-            console.log('%c✅ System initialized successfully', 
-                'color: #00e676; font-size: 14px;');
-            
-            checkExpiredSessions();
-        }
+// فحص الجلسات
+checkExpiredSessions();
 
         // ========================================
         // Core Functions
