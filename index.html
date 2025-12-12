@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 تسجيل دخول المسؤول</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: rgba(26, 35, 47, 0.95);
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 2px solid rgba(79, 195, 247, 0.3);
+            width: 450px;
+            max-width: 90%;
+        }
+        h1 {
+            color: #4fc3f7;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 28px;
+        }
+        .input-group { margin-bottom: 25px; }
+        label {
+            display: block;
+            color: #bbdefb;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255,255,255,0.08);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            background: rgba(255,255,255,0.12);
+        }
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #3949ab 0%, #283593 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 195, 247, 0.4);
+        }
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 4px solid #f44336;
+            display: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #4fc3f7;
+        }
+        .spinner {
+            border: 3px solid rgba(79, 195, 247, 0.2);
+            border-top: 3px solid #4fc3f7;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>🔐 تسجيل دخول المسؤول</h1>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label>📧 البريد الإلكتروني</label>
+                <input type="email" id="email" placeholder="admin@example.com" required>
+            </div>
+            
+            <div class="input-group">
+                <label>🔑 كلمة المرور</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            
+            <button type="submit">دخول 🚀</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>جاري التحقق...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+        // Firebase configuration (الكود الذي نسخته)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCbMdjj7escUMDKvRlD7iaNBTW6ZjhnTDs",
+            authDomain: "loginapp-8a0ad.firebaseapp.com",
+            databaseURL: "https://loginapp-8a0ad-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "loginapp-8a0ad",
+            storageBucket: "loginapp-8a0ad.firebasestorage.app",
+            messagingSenderId: "172160411416",
+            appId: "1:172160411416:web:74a57f545b87254323e06d",
+            measurementId: "G-RQCHC0E4KH"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const database = getDatabase(app);
+
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            
+            // Hide previous errors
+            errorDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            
+            try {
+                // Sign in
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const uid = userCredential.user.uid;
+                
+                // Check if admin
+                const adminRef = ref(database, `admins/${uid}`);
+                const snapshot = await get(adminRef);
+                
+                if (snapshot.exists()) {
+                    // Success - redirect to admin panel
+                    alert('✅ تم تسجيل الدخول بنجاح!');
+                    window.location.href = 'admin-panel.html';
+                } else {
+                    // Not an admin
+                    errorDiv.textContent = '⛔ عذراً، أنت لست مسؤولاً!';
+                    errorDiv.style.display = 'block';
+                    await signOut(auth);
+                }
+            } catch (error) {
+                // Handle errors
+                let errorMessage = 'حدث خطأ غير متوقع';
+                
+                switch(error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = '❌ البريد الإلكتروني غير مسجل';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = '❌ كلمة المرور خاطئة';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = '❌ البريد الإلكتروني غير صحيح';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = '⚠️ محاولات كثيرة، حاول لاحقاً';
+                        break;
+                    case 'auth/invalid-credential':
+                        errorMessage = '❌ البريد أو كلمة المرور خاطئة';
+                        break;
+                    default:
+                        errorMessage = '❌ خطأ: ' + error.message;
+                }
+                
+                errorDiv.textContent = errorMessage;
+                errorDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
